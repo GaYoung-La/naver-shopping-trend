@@ -1,0 +1,27 @@
+# 네이버 DataLab 급상승 키워드 분석 시스템
+# Python 3.8+
+
+# 웹 프레임워크
+streamlit>=1.28.0
+
+# 데이터 처리
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0  # Excel 파일 처리
+
+# API 요청
+requests>=2.31.0
+
+# 날짜/시간 처리
+python-dateutil>=2.8.2
+
+# 시각화
+plotly>=5.17.0
+
+# Selenium (웹 크롤링)
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+
+# 기타
+Pillow>=10.0.0  # 이미지 처리
+
