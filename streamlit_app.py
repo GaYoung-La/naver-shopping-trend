@@ -23,6 +23,43 @@ from naver_shopping_categories import (
 )
 
 
+def test_api_connection(client_id: str, client_secret: str) -> bool:
+    """
+    API 키가 유효한지 간단히 테스트
+    
+    Args:
+        client_id: 네이버 API 클라이언트 ID
+        client_secret: 네이버 API 클라이언트 Secret
+    
+    Returns:
+        bool: API 키가 유효하면 True, 아니면 False
+    """
+    from datetime import datetime, timedelta
+    
+    try:
+        # 간단한 테스트: 최근 7일, 단일 키워드
+        end_date = datetime.now() - timedelta(days=1)
+        start_date = end_date - timedelta(days=7)
+        
+        from datalab_api import datalab_keyword_trend
+        
+        result = datalab_keyword_trend(
+            client_id=client_id,
+            client_secret=client_secret,
+            keywords=["비타민"],  # 테스트용 간단한 키워드
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            time_unit="date"
+        )
+        
+        # 정상 응답이면 True
+        return "results" in result and len(result["results"]) > 0
+    
+    except Exception as e:
+        print(f"API 테스트 실패: {str(e)}")
+        return False
+
+
 def calculate_rising_score(is_new: bool, rank_delta, trend_delta: float, trend_pct: float) -> float:
     """
     급상승 스코어 계산
@@ -443,6 +480,13 @@ def main():
                     """)
                     
                     # 급상승 분석
+                    # 상세 정보 표시
+                    st.write(f"🔍 분석 시작: {len(keywords)}개 키워드")
+                    
+                    # 로그 영역 생성
+                    log_placeholder = st.empty()
+                    log_placeholder.info("📋 터미널 로그를 확인하세요...")
+                    
                     df_rising = find_rising_keywords(
                         client_id=client_id,
                         client_secret=client_secret,
@@ -452,9 +496,46 @@ def main():
                         topk=topk
                     )
                     
+                    log_placeholder.empty()  # 로그 메시지 제거
+                    
                     if df_rising.empty:
                         st.error("❌ 분석 결과가 없습니다.")
-                        st.info("터미널 로그를 확인하거나, 다른 카테고리를 선택해보세요.")
+                        
+                        # 원인 진단
+                        with st.expander("🔍 문제 진단", expanded=True):
+                            st.markdown("""
+                            ### 가능한 원인:
+                            
+                            1. **API 키 문제**
+                               - Client ID 또는 Secret이 잘못되었을 수 있습니다
+                               - [네이버 개발자 센터](https://developers.naver.com)에서 확인하세요
+                            
+                            2. **API 호출 한도 초과**
+                               - 네이버 DataLab API는 일일 호출 한도가 있습니다
+                               - 잠시 후 다시 시도하세요
+                            
+                            3. **키워드 문제**
+                               - 키워드가 비어있거나 유효하지 않을 수 있습니다
+                               - 다른 카테고리를 선택해보세요
+                            
+                            4. **네트워크 오류**
+                               - 인터넷 연결을 확인하세요
+                            
+                            ### 해결 방법:
+                            
+                            1. **API 키 테스트**: 아래 버튼으로 API 키가 유효한지 확인하세요
+                            2. **키워드 업데이트**: 사이드바에서 "🔄 키워드 자동 업데이트" 실행
+                            3. **다른 카테고리 선택**: 다른 카테고리로 시도해보세요
+                            """)
+                            
+                            # API 키 테스트 버튼
+                            if st.button("🧪 API 키 테스트", type="secondary"):
+                                test_result = test_api_connection(client_id, client_secret)
+                                if test_result:
+                                    st.success("✅ API 키가 정상적으로 작동합니다!")
+                                else:
+                                    st.error("❌ API 키가 유효하지 않습니다. Client ID와 Secret을 확인하세요.")
+                        
                         return
                     
                     # 급상승 스코어 계산
