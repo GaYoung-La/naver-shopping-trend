@@ -812,6 +812,53 @@ def main():
                             with col_c:
                                 st.metric("표준편차", f"{timeline_df[keyword].std():.1f}",
                                         delta=None, delta_color="off")
+                            
+                            # 참고 링크
+                            st.markdown("---")
+                            st.markdown("##### 🔗 참고 링크")
+                            
+                            # URL 인코딩을 위한 import
+                            from urllib.parse import quote
+                            encoded_keyword = quote(keyword)
+                            
+                            # 링크 버튼들을 2줄로 배치
+                            col_link1, col_link2 = st.columns(2)
+                            
+                            with col_link1:
+                                st.markdown(f"""
+                                <a href="https://search.shopping.naver.com/search/all?query={encoded_keyword}" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#03C75A; color:white; border:none; border-radius:5px; cursor:pointer;">
+                                        🛒 네이버 쇼핑
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+                                
+                                st.markdown(f"""
+                                <a href="https://datalab.naver.com/keyword/trendResult.naver" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#5B9BD5; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:5px;">
+                                        📊 네이버 DataLab
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+                            
+                            with col_link2:
+                                st.markdown(f"""
+                                <a href="https://search.naver.com/search.naver?query={encoded_keyword}" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#00C73C; color:white; border:none; border-radius:5px; cursor:pointer;">
+                                        🔍 네이버 검색
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+                                
+                                st.markdown(f"""
+                                <a href="https://trends.google.com/trends/explore?q={encoded_keyword}&geo=KR" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#4285F4; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:5px;">
+                                        🌐 구글 트렌드
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+                            
+                            st.caption("💡 링크를 클릭하면 새 탭에서 열립니다")
                         else:
                             st.warning("⚠️ 데이터를 불러올 수 없습니다.")
                 
