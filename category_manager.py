@@ -18,95 +18,114 @@ class CategoryManager:
         self.data = self._load_or_init()
     
     def _load_or_init(self) -> Dict:
-        """데이터 로드 또는 초기화"""
+        """데이터 로드 또는 초기화 (SEED_QUERIES와 병합)"""
         if self.data_path.exists():
             with open(self.data_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                existing_data = json.load(f)
+            
+            # SEED_QUERIES 구조와 병합 (새 카테고리 추가)
+            updated_data = self._merge_with_seed_queries(existing_data)
+            
+            # 새 카테고리가 추가되었으면 저장
+            if updated_data != existing_data:
+                print(f"🔄 새로운 카테고리 추가됨, 저장 중...")
+                with open(self.data_path, "w", encoding="utf-8") as f:
+                    json.dump(updated_data, f, ensure_ascii=False, indent=2)
+            
+            return updated_data
         else:
             return self._init_structure()
     
+    def _merge_with_seed_queries(self, existing_data: Dict) -> Dict:
+        """기존 데이터와 SEED_QUERIES 병합"""
+        try:
+            from auto_keyword_discovery import SEED_QUERIES
+            
+            # SEED_QUERIES의 모든 카테고리 확인
+            for major_cat, cat_data in SEED_QUERIES.items():
+                # 대분류가 없으면 추가
+                if major_cat not in existing_data:
+                    print(f"  ➕ 대분류 추가: {major_cat}")
+                    existing_data[major_cat] = {
+                        "auto_keywords": [],
+                        "user_keywords": [],
+                        "enabled_keywords": [],
+                        "subcategories": {}
+                    }
+                
+                # 중분류 확인
+                if "중분류" in cat_data and cat_data["중분류"]:
+                    if "subcategories" not in existing_data[major_cat]:
+                        existing_data[major_cat]["subcategories"] = {}
+                    
+                    for sub_cat in cat_data["중분류"].keys():
+                        # 중분류가 없으면 추가
+                        if sub_cat not in existing_data[major_cat]["subcategories"]:
+                            print(f"     ➕ 중분류 추가: {major_cat} > {sub_cat}")
+                            existing_data[major_cat]["subcategories"][sub_cat] = {
+                                "auto_keywords": [],
+                                "user_keywords": [],
+                                "enabled_keywords": []
+                            }
+            
+            return existing_data
+            
+        except Exception as e:
+            print(f"⚠️ SEED_QUERIES 병합 실패: {e}")
+            return existing_data
+    
     def _init_structure(self) -> Dict:
-        """초기 계층 구조 생성"""
-        return {
-            "패션의류": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],  # 활성화된 키워드 목록
-                "subcategories": {
-                    "여성의류": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "남성의류": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "언더웨어": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+        """초기 계층 구조 생성 (SEED_QUERIES 기반)"""
+        try:
+            # SEED_QUERIES를 import하여 구조 생성
+            from auto_keyword_discovery import SEED_QUERIES
+            
+            structure = {}
+            for major_cat, cat_data in SEED_QUERIES.items():
+                structure[major_cat] = {
+                    "auto_keywords": [],
+                    "user_keywords": [],
+                    "enabled_keywords": [],
+                    "subcategories": {}
                 }
-            },
-            "패션잡화": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {
-                    "여성가방": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "남성가방": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "지갑": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                
+                # 중분류가 있으면 추가
+                if "중분류" in cat_data and cat_data["중분류"]:
+                    for sub_cat in cat_data["중분류"].keys():
+                        structure[major_cat]["subcategories"][sub_cat] = {
+                            "auto_keywords": [],
+                            "user_keywords": [],
+                            "enabled_keywords": []
+                        }
+            
+            print(f"✅ SEED_QUERIES 기반 구조 생성: {len(structure)}개 대분류")
+            return structure
+            
+        except Exception as e:
+            # SEED_QUERIES를 import할 수 없으면 기본 구조 반환
+            print(f"⚠️ SEED_QUERIES import 실패, 기본 구조 사용: {e}")
+            return {
+                "패션의류": {
+                    "auto_keywords": [],
+                    "user_keywords": [],
+                    "enabled_keywords": [],
+                    "subcategories": {
+                        "여성의류": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                        "남성의류": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                        "언더웨어": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                    }
+                },
+                "화장품/미용": {
+                    "auto_keywords": [],
+                    "user_keywords": [],
+                    "enabled_keywords": [],
+                    "subcategories": {
+                        "스킨케어": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                        "메이크업": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                        "향수": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
+                    }
                 }
-            },
-            "화장품/미용": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {
-                    "스킨케어": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "메이크업": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "향수": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                }
-            },
-            "디지털/가전": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {}
-            },
-            "식품": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {
-                    "농수축산물": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "가공식품": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "건강식품": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                }
-            },
-            "생활/건강": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {
-                    "생활용품": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "건강용품": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "의료용품": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                }
-            },
-            "출산/육아": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {
-                    "기저귀": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "분유": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                    "이유식": {"auto_keywords": [], "user_keywords": [], "enabled_keywords": []},
-                }
-            },
-            "스포츠/레저": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {}
-            },
-            "여가/생활편의": {
-                "auto_keywords": [],
-                "user_keywords": [],
-                "enabled_keywords": [],
-                "subcategories": {}
             }
-        }
     
     def migrate_from_old_format(self, old_data_path: str = "./naver_categories.json"):
         """
