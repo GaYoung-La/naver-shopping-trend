@@ -523,8 +523,27 @@ def main():
         enabled_keywords = set(keywords_info["enabled"])
         
         if all_keywords:
-            # 검색 필터
-            search_term = st.text_input("🔍 키워드 검색", placeholder="검색어 입력...")
+            # 검색 필터 및 전체 선택/해제 버튼
+            col_search, col_btn1, col_btn2 = st.columns([3, 1, 1])
+            
+            with col_search:
+                search_term = st.text_input("🔍 키워드 검색", placeholder="검색어 입력...")
+            
+            with col_btn1:
+                st.write("")  # 여백
+                st.write("")  # 여백
+                if st.button("✅ 전체 선택", use_container_width=True):
+                    manager.enable_all_keywords(selected_major, selected_sub)
+                    st.success("✅ 모든 키워드 활성화!")
+                    st.rerun()
+            
+            with col_btn2:
+                st.write("")  # 여백
+                st.write("")  # 여백
+                if st.button("⬜ 전체 해제", use_container_width=True):
+                    manager.disable_all_keywords(selected_major, selected_sub)
+                    st.success("⬜ 모든 키워드 비활성화!")
+                    st.rerun()
             
             if search_term:
                 all_keywords = [kw for kw in all_keywords if search_term.lower() in kw.lower()]

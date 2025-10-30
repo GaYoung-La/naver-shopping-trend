@@ -238,6 +238,39 @@ class CategoryManager:
         
         return False
     
+    def enable_all_keywords(self, major: str, sub: Optional[str] = None):
+        """모든 키워드 활성화"""
+        if major not in self.data:
+            return False
+        
+        target = self.data[major]
+        if sub:
+            if sub not in target.get("subcategories", {}):
+                return False
+            target = target["subcategories"][sub]
+        
+        # 자동 + 사용자 키워드 모두 활성화
+        all_keywords = list(set(target.get("auto_keywords", []) + target.get("user_keywords", [])))
+        target["enabled_keywords"] = all_keywords
+        self.save()
+        return True
+    
+    def disable_all_keywords(self, major: str, sub: Optional[str] = None):
+        """모든 키워드 비활성화"""
+        if major not in self.data:
+            return False
+        
+        target = self.data[major]
+        if sub:
+            if sub not in target.get("subcategories", {}):
+                return False
+            target = target["subcategories"][sub]
+        
+        # 모든 키워드 비활성화
+        target["enabled_keywords"] = []
+        self.save()
+        return True
+    
     def get_all_keywords(self, major: str, sub: Optional[str] = None, only_enabled: bool = False) -> Dict[str, List[str]]:
         """
         모든 키워드 반환
