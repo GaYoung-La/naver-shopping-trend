@@ -244,14 +244,26 @@ class CategoryManager:
             return False
         
         target = self.data[major]
+        
         if sub:
+            # 중분류 선택 시: 해당 중분류만 활성화
             if sub not in target.get("subcategories", {}):
                 return False
             target = target["subcategories"][sub]
+            all_keywords = list(set(target.get("auto_keywords", []) + target.get("user_keywords", [])))
+            target["enabled_keywords"] = all_keywords
+        else:
+            # 대분류 전체 선택 시: 대분류 + 모든 중분류 활성화
+            # 대분류 키워드 활성화
+            major_keywords = list(set(target.get("auto_keywords", []) + target.get("user_keywords", [])))
+            target["enabled_keywords"] = major_keywords
+            
+            # 모든 중분류 키워드 활성화
+            subcategories = target.get("subcategories", {})
+            for sub_name, sub_data in subcategories.items():
+                sub_keywords = list(set(sub_data.get("auto_keywords", []) + sub_data.get("user_keywords", [])))
+                sub_data["enabled_keywords"] = sub_keywords
         
-        # 자동 + 사용자 키워드 모두 활성화
-        all_keywords = list(set(target.get("auto_keywords", []) + target.get("user_keywords", [])))
-        target["enabled_keywords"] = all_keywords
         self.save()
         return True
     
@@ -261,13 +273,23 @@ class CategoryManager:
             return False
         
         target = self.data[major]
+        
         if sub:
+            # 중분류 선택 시: 해당 중분류만 비활성화
             if sub not in target.get("subcategories", {}):
                 return False
             target = target["subcategories"][sub]
+            target["enabled_keywords"] = []
+        else:
+            # 대분류 전체 선택 시: 대분류 + 모든 중분류 비활성화
+            # 대분류 키워드 비활성화
+            target["enabled_keywords"] = []
+            
+            # 모든 중분류 키워드 비활성화
+            subcategories = target.get("subcategories", {})
+            for sub_name, sub_data in subcategories.items():
+                sub_data["enabled_keywords"] = []
         
-        # 모든 키워드 비활성화
-        target["enabled_keywords"] = []
         self.save()
         return True
     
