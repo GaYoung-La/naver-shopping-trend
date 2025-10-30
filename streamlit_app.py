@@ -272,6 +272,37 @@ def main():
         
         st.divider()
         
+        # 분석 설정
+        st.header("⚙️ 분석 설정")
+        
+        # 기간
+        end_date = datetime.now() - timedelta(days=1)
+        start_date = end_date - timedelta(days=30)
+        
+        date_range = st.date_input(
+            "분석 기간",
+            value=(start_date, end_date),
+            max_value=end_date
+        )
+        
+        if len(date_range) == 2:
+            start_date_str = date_range[0].strftime("%Y-%m-%d")
+            end_date_str = date_range[1].strftime("%Y-%m-%d")
+        else:
+            start_date_str = start_date.strftime("%Y-%m-%d")
+            end_date_str = end_date.strftime("%Y-%m-%d")
+        
+        # 급상승 개수
+        topk = st.slider(
+            "표시할 개수",
+            min_value=5,
+            max_value=50,
+            value=20,
+            step=5
+        )
+        
+        st.divider()
+        
         # 카테고리 관리
         st.header("📂 카테고리 관리")
         
@@ -353,37 +384,6 @@ def main():
                         with st.expander("🔧 상세 오류"):
                             import traceback
                             st.code(traceback.format_exc())
-        
-        st.divider()
-        
-        # 분석 설정
-        st.header("⚙️ 분석 설정")
-        
-        # 기간
-        end_date = datetime.now() - timedelta(days=1)
-        start_date = end_date - timedelta(days=30)
-        
-        date_range = st.date_input(
-            "분석 기간",
-            value=(start_date, end_date),
-            max_value=end_date
-        )
-        
-        if len(date_range) == 2:
-            start_date_str = date_range[0].strftime("%Y-%m-%d")
-            end_date_str = date_range[1].strftime("%Y-%m-%d")
-        else:
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            end_date_str = end_date.strftime("%Y-%m-%d")
-        
-        # 급상승 개수
-        topk = st.slider(
-            "표시할 개수",
-            min_value=5,
-            max_value=50,
-            value=20,
-            step=5
-        )
     
     # === 메인 영역 ===
     
