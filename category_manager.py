@@ -228,6 +228,8 @@ class CategoryManager:
         """
         모든 키워드 반환
         
+        중분류를 선택했는데 키워드가 없으면 대분류 키워드를 반환
+        
         Returns:
             {
                 "auto": [...],      # 자동 수집 키워드
@@ -244,23 +246,47 @@ class CategoryManager:
                 return {"auto": [], "user": [], "enabled": []}
             target = target["subcategories"][sub]
         
-        if only_enabled:
-            return {
-                "auto": [],
-                "user": [],
-                "enabled": target.get("enabled_keywords", [])
-            }
-        
-        return {
+        # 결과 구성
+        result = {
             "auto": target.get("auto_keywords", []),
             "user": target.get("user_keywords", []),
             "enabled": target.get("enabled_keywords", [])
         }
+        
+        # 중분류인데 키워드가 하나도 없으면 대분류 키워드 사용
+        if sub and not result["auto"] and not result["user"] and not result["enabled"]:
+            major_target = self.data[major]
+            result = {
+                "auto": major_target.get("auto_keywords", []),
+                "user": major_target.get("user_keywords", []),
+                "enabled": major_target.get("enabled_keywords", [])
+            }
+        
+        if only_enabled:
+            return {
+                "auto": [],
+                "user": [],
+                "enabled": result["enabled"]
+            }
+        
+        return result
     
     def get_enabled_keywords(self, major: str, sub: Optional[str] = None) -> List[str]:
-        """활성화된 키워드만 반환 (분석에 사용)"""
+        """
+        활성화된 키워드만 반환 (분석에 사용)
+        
+        중분류를 선택했는데 키워드가 없으면 대분류 키워드를 사용
+        """
         keywords = self.get_all_keywords(major, sub, only_enabled=True)
-        return keywords["enabled"]
+        enabled = keywords["enabled"]
+        
+        # 중분류를 선택했는데 키워드가 없으면 대분류 키워드 사용
+        if sub and not enabled:
+            print(f"💡 '{sub}' 중분류에 키워드가 없어 '{major}' 대분류 키워드 사용")
+            major_keywords = self.get_all_keywords(major, sub=None, only_enabled=True)
+            enabled = major_keywords["enabled"]
+        
+        return enabled
     
     def update_auto_keywords(self, major: str, keywords: List[str], sub: Optional[str] = None, mode: str = "replace"):
         """

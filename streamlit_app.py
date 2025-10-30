@@ -459,6 +459,13 @@ def main():
         keywords_info = manager.get_all_keywords(selected_major, selected_sub)
         total_keywords = len(keywords_info["enabled"])
         st.metric("활성 키워드", f"{total_keywords}개")
+        
+        # 중분류를 선택했는데 키워드가 없으면 안내 메시지
+        if selected_sub and total_keywords > 0:
+            # 중분류 자체의 키워드 확인
+            sub_target = manager.data[selected_major]["subcategories"][selected_sub]
+            if not sub_target.get("auto_keywords") and not sub_target.get("user_keywords"):
+                st.caption("💡 대분류 키워드 사용중")
     
     # 키워드 관리 섹션
     st.markdown("---")
