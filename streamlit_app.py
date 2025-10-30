@@ -303,41 +303,11 @@ def main():
         
         st.divider()
         
-        # 카테고리 관리
-        st.header("📂 카테고리 관리")
-        
-        # CategoryManager 통계 표시
-        manager = st.session_state["category_manager"]
-        stats = manager.get_stats()
-        
-        # 키워드가 있는지 확인
-        has_keywords = stats['활성화 키워드'] > 0
-        
-        if has_keywords:
-            st.success(f"✅ 키워드 수집 완료")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("대분류", f"{stats['대분류']}개")
-                st.metric("중분류", f"{stats['중분류']}개")
-            with col2:
-                st.metric("자동 키워드", f"{stats['자동 키워드']}개")
-                st.metric("활성화", f"{stats['활성화 키워드']}개")
-        else:
-            st.warning("⚠️ 키워드 없음")
-            st.info("""
-            💡 **키워드를 수집하세요**
-            
-            아래 버튼을 클릭하여
-            대분류와 중분류별로
-            키워드를 자동 수집합니다.
-            """)
-        
-        # 자동 키워드 업데이트 버튼
-        st.markdown("---")
+        # 키워드 자동 업데이트
+        st.header("🔄 키워드 업데이트")
         
         if st.button("🔄 실시간 인기 제품으로 키워드 자동 업데이트", 
-                        type="secondary", 
+                        type="primary", 
                         use_container_width=True,
                         help="대분류와 중분류별로 키워드를 자동으로 수집합니다"):
                 
@@ -384,6 +354,37 @@ def main():
                         with st.expander("🔧 상세 오류"):
                             import traceback
                             st.code(traceback.format_exc())
+        
+        st.divider()
+        
+        # 카테고리 관리
+        st.header("📂 카테고리 관리")
+        
+        # CategoryManager 통계 표시
+        manager = st.session_state["category_manager"]
+        stats = manager.get_stats()
+        
+        # 키워드가 있는지 확인
+        has_keywords = stats['활성화 키워드'] > 0
+        
+        if has_keywords:
+            st.success(f"✅ 키워드 수집 완료")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("대분류", f"{stats['대분류']}개")
+                st.metric("중분류", f"{stats['중분류']}개")
+            with col2:
+                st.metric("자동 키워드", f"{stats['자동 키워드']}개")
+                st.metric("활성화", f"{stats['활성화 키워드']}개")
+        else:
+            st.warning("⚠️ 키워드 없음")
+            st.info("""
+            💡 **먼저 키워드를 수집하세요**
+            
+            위의 "키워드 업데이트" 버튼을 클릭하여
+            대분류와 중분류별로 키워드를 자동 수집합니다.
+            """)
     
     # === 메인 영역 ===
     
