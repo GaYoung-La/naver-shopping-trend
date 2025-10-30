@@ -109,27 +109,22 @@ class CategoryManager:
         }
     
     def migrate_from_old_format(self, old_data_path: str = "./naver_categories.json"):
-        """기존 평면 구조에서 계층 구조로 마이그레이션"""
+        """
+        기존 평면 구조에서 계층 구조로 마이그레이션
+        
+        주의: 키워드는 마이그레이션하지 않음 (업데이트로만 추가)
+        """
         old_path = Path(old_data_path)
         
         if not old_path.exists():
             print("⚠️ 기존 데이터가 없습니다.")
             return
         
-        with open(old_path, "r", encoding="utf-8") as f:
-            old_data = json.load(f)
-        
-        print(f"📦 기존 데이터 마이그레이션 시작: {len(old_data)}개 카테고리")
-        
-        for category, keywords in old_data.items():
-            # 대분류만 있는 경우
-            if category in self.data:
-                self.data[category]["auto_keywords"] = keywords
-                self.data[category]["enabled_keywords"] = keywords.copy()  # 기본적으로 모두 활성화
-                print(f"✓ {category}: {len(keywords)}개 키워드")
+        print("ℹ️  기존 키워드는 마이그레이션하지 않습니다.")
+        print("   '🔄 키워드 자동 업데이트'를 실행하세요.")
         
         self.save()
-        print(f"✅ 마이그레이션 완료!")
+        print(f"✅ 카테고리 구조 생성 완료!")
     
     def get_major_categories(self) -> List[str]:
         """대분류 목록 반환"""
@@ -322,12 +317,14 @@ class CategoryManager:
         
         return sorted(list(all_enabled))
     
-    def update_auto_keywords(self, major: str, keywords: List[str], sub: Optional[str] = None, mode: str = "replace"):
+    def update_auto_keywords(self, major: str, keywords: List[str], sub: Optional[str] = None):
         """
-        자동 수집 키워드 업데이트
+        자동 수집 키워드 업데이트 (항상 교체 모드)
         
         Args:
-            mode: "replace" (교체) 또는 "merge" (병합)
+            major: 대분류 이름
+            keywords: 새로운 키워드 리스트
+            sub: 중분류 이름 (선택사항)
         """
         if major not in self.data:
             return False
@@ -338,20 +335,12 @@ class CategoryManager:
                 return False
             target = target["subcategories"][sub]
         
-        if mode == "replace":
-            # 기존 자동 키워드를 새로운 것으로 교체
-            target["auto_keywords"] = keywords
-            # enabled_keywords도 업데이트 (사용자 키워드는 유지)
-            target["enabled_keywords"] = keywords + target.get("user_keywords", [])
-        else:  # merge
-            # 기존 + 신규 병합 (중복 제거)
-            existing = set(target.get("auto_keywords", []))
-            new_keywords = list(existing | set(keywords))
-            target["auto_keywords"] = new_keywords
-            
-            # enabled도 업데이트
-            enabled_set = set(target.get("enabled_keywords", []))
-            target["enabled_keywords"] = list(enabled_set | set(keywords))
+        # 기존 자동 키워드를 새로운 것으로 교체
+        target["auto_keywords"] = keywords
+        
+        # enabled_keywords도 업데이트 (사용자 키워드는 유지)
+        user_keywords = target.get("user_keywords", [])
+        target["enabled_keywords"] = keywords + user_keywords
         
         self.save()
         return True

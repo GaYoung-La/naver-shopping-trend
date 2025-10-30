@@ -157,7 +157,7 @@ def discover_trending_keywords_hierarchical(
             keywords = keywords[:max_keywords_per_category]
             
             # 대분류에 저장
-            manager.update_auto_keywords(major_category, keywords, sub=None, mode="replace")
+            manager.update_auto_keywords(major_category, keywords, sub=None)
             
             print(f"    ✅ 대분류: {len(keywords)}개 키워드")
             print(f"       예: {', '.join(keywords[:5])}")
@@ -185,7 +185,7 @@ def discover_trending_keywords_hierarchical(
                 keywords = keywords[:max_keywords_per_category]
                 
                 # 중분류에 저장
-                manager.update_auto_keywords(major_category, keywords, sub=sub_category, mode="replace")
+                manager.update_auto_keywords(major_category, keywords, sub=sub_category)
                 
                 print(f" ✓ {len(keywords)}개 ({', '.join(keywords[:3])}...)")
     

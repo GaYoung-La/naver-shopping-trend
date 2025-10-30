@@ -293,19 +293,6 @@ def main():
             # 자동 키워드 업데이트 버튼
             st.markdown("---")
             
-            # 업데이트 모드 선택
-            update_mode = st.radio(
-                "업데이트 모드",
-                ["🔄 교체 (최신 인기만)", "➕ 병합 (기존+신규)"],
-                index=0,
-                help="""
-                **교체 모드**: 최신 인기 키워드로만 교체 (인기 없는 키워드 자동 제거)
-                **병합 모드**: 기존 키워드 유지 + 신규 추가 (누적)
-                """
-            )
-            
-            mode_value = "replace" if "교체" in update_mode else "merge"
-            
             if st.button("🔄 실시간 인기 제품으로 키워드 자동 업데이트", 
                         type="secondary", 
                         use_container_width=True,
@@ -470,6 +457,41 @@ def main():
     # 키워드 관리 섹션
     st.markdown("---")
     st.markdown("### 🔧 키워드 관리")
+    
+    # 키워드가 없으면 안내 메시지
+    if total_keywords == 0:
+        st.warning("""
+        ⚠️ **키워드가 없습니다!**
+        
+        키워드를 수집해야 트렌드 분석을 시작할 수 있습니다.
+        """)
+        
+        st.info("""
+        ### 🚀 시작하기
+        
+        1. **왼쪽 사이드바** 열기
+        2. **API 키 입력** (네이버 개발자 센터)
+        3. **"🔄 키워드 자동 업데이트"** 버튼 클릭
+        4. 대분류와 중분류별로 자동 수집 (1-2분 소요)
+        5. 키워드 수집 완료 후 **트렌드 분석** 시작!
+        """)
+        
+        # 바로 가기 버튼
+        if st.button("📖 API 키 발급 가이드 보기", use_container_width=True):
+            st.markdown("""
+            ### 네이버 API 키 발급 방법
+            
+            1. [네이버 개발자 센터](https://developers.naver.com) 접속
+            2. 로그인 → "Application" → "애플리케이션 등록"
+            3. 애플리케이션 이름 입력
+            4. 사용 API 선택:
+               - ✅ 검색 > 쇼핑
+               - ✅ 검색 > 데이터랩(검색어 트렌드)
+            5. Client ID와 Client Secret 복사
+            6. 왼쪽 사이드바에 입력!
+            """)
+        
+        return  # 키워드가 없으면 여기서 종료
     
     # 탭으로 구분
     tab1, tab2, tab3 = st.tabs(["📋 전체 키워드", "🤖 자동 수집", "✏️ 사용자 지정"])
