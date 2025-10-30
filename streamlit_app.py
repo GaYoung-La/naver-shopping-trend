@@ -533,17 +533,31 @@ def main():
                 st.write("")  # 여백
                 st.write("")  # 여백
                 if st.button("✅ 전체 선택", use_container_width=True):
-                    manager.enable_all_keywords(selected_major, selected_sub)
-                    st.success("✅ 모든 키워드 활성화!")
-                    st.rerun()
+                    # manager 새로 로드하여 최신 메서드 사용
+                    fresh_manager = CategoryManager()
+                    if hasattr(fresh_manager, 'enable_all_keywords'):
+                        fresh_manager.enable_all_keywords(selected_major, selected_sub)
+                        # session_state 업데이트
+                        st.session_state["category_manager"] = fresh_manager
+                        st.success("✅ 모든 키워드 활성화!")
+                        st.rerun()
+                    else:
+                        st.error("❌ 최신 버전으로 업데이트가 필요합니다. 페이지를 새로고침하세요.")
             
             with col_btn2:
                 st.write("")  # 여백
                 st.write("")  # 여백
                 if st.button("⬜ 전체 해제", use_container_width=True):
-                    manager.disable_all_keywords(selected_major, selected_sub)
-                    st.success("⬜ 모든 키워드 비활성화!")
-                    st.rerun()
+                    # manager 새로 로드하여 최신 메서드 사용
+                    fresh_manager = CategoryManager()
+                    if hasattr(fresh_manager, 'disable_all_keywords'):
+                        fresh_manager.disable_all_keywords(selected_major, selected_sub)
+                        # session_state 업데이트
+                        st.session_state["category_manager"] = fresh_manager
+                        st.success("⬜ 모든 키워드 비활성화!")
+                        st.rerun()
+                    else:
+                        st.error("❌ 최신 버전으로 업데이트가 필요합니다. 페이지를 새로고침하세요.")
             
             if search_term:
                 all_keywords = [kw for kw in all_keywords if search_term.lower() in kw.lower()]
