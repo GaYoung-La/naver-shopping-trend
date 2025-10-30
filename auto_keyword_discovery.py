@@ -111,7 +111,8 @@ def discover_trending_keywords_hierarchical(
     client_secret: str,
     categories: Dict,
     max_keywords_per_category: int = 30,
-    manager = None
+    manager = None,
+    progress_callback = None
 ) -> Dict:
     """
     계층적 카테고리별 트렌딩 키워드 자동 발견
@@ -122,6 +123,7 @@ def discover_trending_keywords_hierarchical(
         categories: 계층적 카테고리 구조
         max_keywords_per_category: 카테고리당 최대 키워드 수
         manager: CategoryManager 인스턴스 (선택사항, 없으면 새로 생성)
+        progress_callback: 진행 상황 콜백 함수 (current, total, message)
     
     Returns:
         계층적 구조의 키워드
@@ -135,11 +137,25 @@ def discover_trending_keywords_hierarchical(
     print("🔍 실시간 트렌드 키워드 자동 발견 (계층적)")
     print("="*70)
     
+    # 전체 작업 수 계산
+    total_tasks = 0
+    for cat_data in categories.values():
+        if "대분류" in cat_data:
+            total_tasks += 1
+        if "중분류" in cat_data:
+            total_tasks += len(cat_data["중분류"])
+    
+    current_task = 0
+    
     for major_category, cat_data in categories.items():
         print(f"\n📦 {major_category}")
         
         # 대분류 키워드 수집
         if "대분류" in cat_data:
+            current_task += 1
+            if progress_callback:
+                progress_callback(current_task, total_tasks, f"📦 {major_category} (대분류)")
+            
             print(f"  🏢 대분류 키워드 수집...")
             all_products = []
             
@@ -170,6 +186,10 @@ def discover_trending_keywords_hierarchical(
             print(f"  📁 중분류 키워드 수집...")
             
             for sub_category, search_queries in cat_data["중분류"].items():
+                current_task += 1
+                if progress_callback:
+                    progress_callback(current_task, total_tasks, f"📁 {major_category} > {sub_category}")
+                
                 print(f"    └─ {sub_category}:", end=" ")
                 
                 all_products = []

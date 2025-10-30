@@ -311,49 +311,64 @@ def main():
                         use_container_width=True,
                         help="대분류와 중분류별로 키워드를 자동으로 수집합니다"):
                 
-                with st.spinner("🔍 대분류/중분류별 키워드 수집 중... (시간이 걸릴 수 있습니다)"):
-                    try:
-                        # auto_keyword_discovery 모듈 import
-                        from auto_keyword_discovery import (
-                            discover_trending_keywords_hierarchical,
-                            SEED_QUERIES
-                        )
-                        
-                        # 계층적 키워드 자동 발견 (대분류 + 중분류)
-                        # session_state의 manager를 전달
-                        manager = st.session_state["category_manager"]
-                        updated_data = discover_trending_keywords_hierarchical(
-                            client_id=client_id,
-                            client_secret=client_secret,
-                            categories=SEED_QUERIES,
-                            max_keywords_per_category=50,
-                            manager=manager
-                        )
-                        
-                        # CategoryManager 새로고침 (파일에서 다시 로드)
-                        st.session_state["category_manager"] = CategoryManager()
-                        manager = st.session_state["category_manager"]
-                        stats = manager.get_stats()
-                        
-                        st.success(f"""
-                        ✅ 계층적 키워드 자동 수집 완료!
-                        
-                        - 대분류: {stats['대분류']}개
-                        - 중분류: {stats['중분류']}개
-                        - 자동 키워드: {stats['자동 키워드']}개
-                        - 활성화 키워드: {stats['활성화 키워드']}개
-                        """)
-                        
-                        # 페이지 새로고침
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"❌ 자동 업데이트 실패: {str(e)}")
-                        
-                        # 상세 오류
-                        with st.expander("🔧 상세 오류"):
-                            import traceback
-                            st.code(traceback.format_exc())
+                try:
+                    # auto_keyword_discovery 모듈 import
+                    from auto_keyword_discovery import (
+                        discover_trending_keywords_hierarchical,
+                        SEED_QUERIES
+                    )
+                    
+                    # 프로그레스 바 생성
+                    st.markdown("### 🔍 키워드 수집 중...")
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    # 프로그레스 콜백 함수
+                    def update_progress(current, total, message):
+                        progress = current / total
+                        progress_bar.progress(progress)
+                        status_text.text(f"진행: {current}/{total} - {message}")
+                    
+                    # 계층적 키워드 자동 발견 (대분류 + 중분류)
+                    # session_state의 manager를 전달
+                    manager = st.session_state["category_manager"]
+                    updated_data = discover_trending_keywords_hierarchical(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        categories=SEED_QUERIES,
+                        max_keywords_per_category=50,
+                        manager=manager,
+                        progress_callback=update_progress
+                    )
+                    
+                    # 프로그레스 바 100% 완료
+                    progress_bar.progress(1.0)
+                    status_text.text("✅ 수집 완료!")
+                    
+                    # CategoryManager 새로고침 (파일에서 다시 로드)
+                    st.session_state["category_manager"] = CategoryManager()
+                    manager = st.session_state["category_manager"]
+                    stats = manager.get_stats()
+                    
+                    st.success(f"""
+                    ✅ 계층적 키워드 자동 수집 완료!
+                    
+                    - 대분류: {stats['대분류']}개
+                    - 중분류: {stats['중분류']}개
+                    - 자동 키워드: {stats['자동 키워드']}개
+                    - 활성화 키워드: {stats['활성화 키워드']}개
+                    """)
+                    
+                    # 페이지 새로고침
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"❌ 자동 업데이트 실패: {str(e)}")
+                    
+                    # 상세 오류
+                    with st.expander("🔧 상세 오류"):
+                        import traceback
+                        st.code(traceback.format_exc())
         
         st.divider()
         
