@@ -834,18 +834,18 @@ def main():
                                 """, unsafe_allow_html=True)
                                 
                                 st.markdown(f"""
-                                <a href="https://datalab.naver.com/keyword/trendResult.naver" target="_blank">
-                                    <button style="width:100%; padding:8px; background-color:#5B9BD5; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:5px;">
-                                        📊 네이버 DataLab
+                                <a href="https://section.blog.naver.com/Search/Post.naver?keyword={encoded_keyword}" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#1EC800; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:5px;">
+                                        📝 네이버 블로그
                                     </button>
                                 </a>
                                 """, unsafe_allow_html=True)
                             
                             with col_link2:
                                 st.markdown(f"""
-                                <a href="https://search.naver.com/search.naver?query={encoded_keyword}" target="_blank">
-                                    <button style="width:100%; padding:8px; background-color:#00C73C; color:white; border:none; border-radius:5px; cursor:pointer;">
-                                        🔍 네이버 검색
+                                <a href="https://search.naver.com/search.naver?where=news&query={encoded_keyword}" target="_blank">
+                                    <button style="width:100%; padding:8px; background-color:#F05650; color:white; border:none; border-radius:5px; cursor:pointer;">
+                                        📰 네이버 뉴스
                                     </button>
                                 </a>
                                 """, unsafe_allow_html=True)
