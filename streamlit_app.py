@@ -1009,10 +1009,10 @@ def main():
                             st.markdown("### 📊 검색량 히트맵")
                             st.caption("키워드별 검색량의 상대적 강도를 색상으로 표현합니다")
                         
-                            # 히트맵 데이터 준비 (날짜를 짧게)
+                            # 히트맵 데이터 준비 (날짜를 짧게, 정렬 유지)
                             heatmap_data = timeline_df.copy()
-                            # 인덱스를 datetime으로 변환 후 포맷
-                            heatmap_data.index = pd.to_datetime(heatmap_data.index).strftime('%m/%d')
+                            # 인덱스가 이미 datetime이므로 포맷만 변경 (정렬 순서 유지)
+                            heatmap_data.index = heatmap_data.index.strftime('%m/%d')
                         
                             fig_heatmap = px.imshow(
                                 heatmap_data.T,

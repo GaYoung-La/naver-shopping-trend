@@ -288,7 +288,10 @@ def get_keyword_timeline(
     # DataFrame으로 변환
     df = pd.DataFrame(all_timelines)
     df.index.name = "date"
-    # date를 인덱스로 유지 (reset_index 제거)
+    
+    # 날짜 인덱스를 시간 순서대로 정렬 (중요!)
+    df.index = pd.to_datetime(df.index)
+    df = df.sort_index()
     
     return df
 
