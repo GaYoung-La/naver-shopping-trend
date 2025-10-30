@@ -106,6 +106,96 @@ def extract_keywords_from_products(products: List[Dict], min_freq: int = 2) -> L
     return sorted(all_keywords)
 
 
+def discover_trending_keywords_hierarchical(
+    client_id: str,
+    client_secret: str,
+    categories: Dict,
+    max_keywords_per_category: int = 30
+) -> Dict:
+    """
+    계층적 카테고리별 트렌딩 키워드 자동 발견
+    
+    Args:
+        client_id: API Client ID
+        client_secret: API Client Secret
+        categories: 계층적 카테고리 구조
+        max_keywords_per_category: 카테고리당 최대 키워드 수
+    
+    Returns:
+        계층적 구조의 키워드
+    """
+    from category_manager import CategoryManager
+    
+    manager = CategoryManager()
+    
+    print("="*70)
+    print("🔍 실시간 트렌드 키워드 자동 발견 (계층적)")
+    print("="*70)
+    
+    for major_category, cat_data in categories.items():
+        print(f"\n📦 {major_category}")
+        
+        # 대분류 키워드 수집
+        if "대분류" in cat_data:
+            print(f"  🏢 대분류 키워드 수집...")
+            all_products = []
+            
+            for query in cat_data["대분류"]:
+                print(f"    검색: {query}...", end=" ")
+                data = naver_shopping_search(
+                    query=query,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    display=100,
+                    sort="sim"
+                )
+                items = data.get("items", [])
+                all_products.extend(items)
+                print(f"✓ {len(items)}개")
+            
+            keywords = extract_keywords_from_products(all_products, min_freq=3)
+            keywords = keywords[:max_keywords_per_category]
+            
+            # 대분류에 저장
+            manager.update_auto_keywords(major_category, keywords, sub=None, mode="replace")
+            
+            print(f"    ✅ 대분류: {len(keywords)}개 키워드")
+            print(f"       예: {', '.join(keywords[:5])}")
+        
+        # 중분류 키워드 수집
+        if "중분류" in cat_data and cat_data["중분류"]:
+            print(f"  📁 중분류 키워드 수집...")
+            
+            for sub_category, search_queries in cat_data["중분류"].items():
+                print(f"    └─ {sub_category}:", end=" ")
+                
+                all_products = []
+                for query in search_queries:
+                    data = naver_shopping_search(
+                        query=query,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        display=50,
+                        sort="sim"
+                    )
+                    items = data.get("items", [])
+                    all_products.extend(items)
+                
+                keywords = extract_keywords_from_products(all_products, min_freq=2)
+                keywords = keywords[:max_keywords_per_category]
+                
+                # 중분류에 저장
+                manager.update_auto_keywords(major_category, keywords, sub=sub_category, mode="replace")
+                
+                print(f" ✓ {len(keywords)}개 ({', '.join(keywords[:3])}...)")
+    
+    print(f"\n{'='*70}")
+    print(f"✅ 수집 완료!")
+    print(f"{'='*70}")
+    
+    return manager.data
+
+
 def discover_trending_keywords(
     client_id: str,
     client_secret: str,
@@ -113,7 +203,7 @@ def discover_trending_keywords(
     max_keywords_per_category: int = 30
 ) -> Dict[str, List[str]]:
     """
-    카테고리별 트렌딩 키워드 자동 발견
+    카테고리별 트렌딩 키워드 자동 발견 (하위 호환성)
     
     Args:
         client_id: API Client ID
@@ -248,35 +338,68 @@ def save_keywords(
     print(f"   총 {len(keywords)}개 카테고리, {sum(len(v) for v in keywords.values())}개 키워드")
 
 
-# 카테고리별 시드 검색어 (네이버 쇼핑 공식 카테고리 기반)
+# 카테고리별 시드 검색어 (계층적 구조)
 SEED_QUERIES = {
-    "패션의류": [
-        "티셔츠", "셔츠", "니트", "맨투맨", "후드", "코트", "자켓", "청바지"
-    ],
-    "패션잡화": [
-        "가방", "지갑", "벨트", "모자", "스카프", "시계", "선글라스", "목걸이"
-    ],
-    "화장품/미용": [
-        "화장품", "스킨케어", "메이크업", "로션", "크림", "에센스", "마스크팩", "선크림"
-    ],
-    "디지털/가전": [
-        "이어폰", "무선충전기", "보조배터리", "스마트워치", "태블릿", "키보드", "마우스"
-    ],
-    "출산/육아": [
-        "기저귀", "분유", "유모차", "아기띠", "수유용품", "유아식", "육아용품"
-    ],
-    "식품": [
-        "건강식품", "다이어트식품", "단백질", "프로틴", "홍삼", "영양바", "건과류"
-    ],
-    "스포츠/레저": [
-        "운동복", "운동화", "요가매트", "덤벨", "런닝화", "등산화", "자전거"
-    ],
-    "생활/건강": [
-        "건강기능식품", "비타민", "영양제", "프로바이오틱스", "오메가3", "유산균", "감기약"
-    ],
-    "여가/생활편의": [
-        "캠핑용품", "텀블러", "보온병", "우산", "여행가방", "수납용품", "생활용품"
-    ]
+    "패션의류": {
+        "대분류": ["패션의류", "의류"],
+        "중분류": {
+            "여성의류": ["여성의류", "여성옷", "레이디스"],
+            "남성의류": ["남성의류", "남성옷", "맨즈"],
+            "언더웨어": ["속옷", "이너웨어", "언더웨어"]
+        }
+    },
+    "패션잡화": {
+        "대분류": ["패션잡화", "액세서리"],
+        "중분류": {
+            "여성가방": ["여성가방", "숄더백", "크로스백"],
+            "남성가방": ["남성가방", "백팩", "비즈니스백"],
+            "지갑": ["지갑", "반지갑", "장지갑"]
+        }
+    },
+    "화장품/미용": {
+        "대분류": ["화장품", "코스메틱"],
+        "중분류": {
+            "스킨케어": ["스킨케어", "로션", "크림", "에센스"],
+            "메이크업": ["메이크업", "립스틱", "파운데이션"],
+            "향수": ["향수", "퍼퓸", "프래그런스"]
+        }
+    },
+    "디지털/가전": {
+        "대분류": ["디지털", "전자기기"],
+        "중분류": {}
+    },
+    "식품": {
+        "대분류": ["식품", "건강식품"],
+        "중분류": {
+            "농수축산물": ["농산물", "수산물", "축산물"],
+            "가공식품": ["가공식품", "즉석식품"],
+            "건강식품": ["건강식품", "영양제", "비타민"]
+        }
+    },
+    "생활/건강": {
+        "대분류": ["생활건강", "건강용품"],
+        "중분류": {
+            "생활용품": ["생활용품", "주방용품"],
+            "건강용품": ["건강용품", "의료용품"],
+            "의료용품": ["의료용품", "구급용품"]
+        }
+    },
+    "출산/육아": {
+        "대분류": ["출산육아", "육아용품"],
+        "중분류": {
+            "기저귀": ["기저귀", "유아용기저귀"],
+            "분유": ["분유", "유아식", "이유식"],
+            "이유식": ["이유식", "유아식"]
+        }
+    },
+    "스포츠/레저": {
+        "대분류": ["스포츠", "레저용품"],
+        "중분류": {}
+    },
+    "여가/생활편의": {
+        "대분류": ["생활편의", "여가용품"],
+        "중분류": {}
+    }
 }
 
 

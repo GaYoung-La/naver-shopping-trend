@@ -228,7 +228,8 @@ class CategoryManager:
         """
         모든 키워드 반환
         
-        중분류를 선택했는데 키워드가 없으면 대분류 키워드를 반환
+        - 중분류 선택 시: 해당 중분류의 키워드만
+        - 대분류 전체 선택 시: 대분류 + 모든 중분류 키워드 병합
         
         Returns:
             {
@@ -240,27 +241,47 @@ class CategoryManager:
         if major not in self.data:
             return {"auto": [], "user": [], "enabled": []}
         
-        target = self.data[major]
+        # 중분류 선택한 경우: 해당 중분류만
         if sub:
+            target = self.data[major]
             if sub not in target.get("subcategories", {}):
                 return {"auto": [], "user": [], "enabled": []}
             target = target["subcategories"][sub]
-        
-        # 결과 구성
-        result = {
-            "auto": target.get("auto_keywords", []),
-            "user": target.get("user_keywords", []),
-            "enabled": target.get("enabled_keywords", [])
-        }
-        
-        # 중분류인데 키워드가 하나도 없으면 대분류 키워드 사용
-        if sub and not result["auto"] and not result["user"] and not result["enabled"]:
-            major_target = self.data[major]
+            
             result = {
-                "auto": major_target.get("auto_keywords", []),
-                "user": major_target.get("user_keywords", []),
-                "enabled": major_target.get("enabled_keywords", [])
+                "auto": target.get("auto_keywords", []),
+                "user": target.get("user_keywords", []),
+                "enabled": target.get("enabled_keywords", [])
             }
+            
+            if only_enabled:
+                return {
+                    "auto": [],
+                    "user": [],
+                    "enabled": result["enabled"]
+                }
+            
+            return result
+        
+        # 대분류 전체 선택: 대분류 + 모든 중분류 병합
+        major_data = self.data[major]
+        
+        all_auto = set(major_data.get("auto_keywords", []))
+        all_user = set(major_data.get("user_keywords", []))
+        all_enabled = set(major_data.get("enabled_keywords", []))
+        
+        # 모든 중분류 키워드 병합
+        subcategories = major_data.get("subcategories", {})
+        for sub_name, sub_data in subcategories.items():
+            all_auto.update(sub_data.get("auto_keywords", []))
+            all_user.update(sub_data.get("user_keywords", []))
+            all_enabled.update(sub_data.get("enabled_keywords", []))
+        
+        result = {
+            "auto": sorted(list(all_auto)),
+            "user": sorted(list(all_user)),
+            "enabled": sorted(list(all_enabled))
+        }
         
         if only_enabled:
             return {
@@ -275,18 +296,31 @@ class CategoryManager:
         """
         활성화된 키워드만 반환 (분석에 사용)
         
-        중분류를 선택했는데 키워드가 없으면 대분류 키워드를 사용
+        - 중분류 선택 시: 해당 중분류의 키워드만 반환
+        - 대분류 전체 선택 시: 대분류 + 모든 중분류 키워드 병합
         """
-        keywords = self.get_all_keywords(major, sub, only_enabled=True)
-        enabled = keywords["enabled"]
+        if major not in self.data:
+            return []
         
-        # 중분류를 선택했는데 키워드가 없으면 대분류 키워드 사용
-        if sub and not enabled:
-            print(f"💡 '{sub}' 중분류에 키워드가 없어 '{major}' 대분류 키워드 사용")
-            major_keywords = self.get_all_keywords(major, sub=None, only_enabled=True)
-            enabled = major_keywords["enabled"]
+        # 중분류 선택한 경우: 해당 중분류만
+        if sub:
+            keywords = self.get_all_keywords(major, sub, only_enabled=True)
+            return keywords["enabled"]
         
-        return enabled
+        # 대분류 전체 선택: 대분류 + 모든 중분류 병합
+        all_enabled = set()
+        
+        # 대분류 키워드
+        major_keywords = self.data[major].get("enabled_keywords", [])
+        all_enabled.update(major_keywords)
+        
+        # 모든 중분류 키워드 병합
+        subcategories = self.data[major].get("subcategories", {})
+        for sub_name, sub_data in subcategories.items():
+            sub_enabled = sub_data.get("enabled_keywords", [])
+            all_enabled.update(sub_enabled)
+        
+        return sorted(list(all_enabled))
     
     def update_auto_keywords(self, major: str, keywords: List[str], sub: Optional[str] = None, mode: str = "replace"):
         """

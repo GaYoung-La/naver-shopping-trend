@@ -309,38 +309,35 @@ def main():
             if st.button("🔄 실시간 인기 제품으로 키워드 자동 업데이트", 
                         type="secondary", 
                         use_container_width=True,
-                        help="네이버 쇼핑 실시간 인기 제품에서 키워드를 자동으로 추출합니다"):
+                        help="대분류와 중분류별로 키워드를 자동으로 수집합니다"):
                 
-                with st.spinner("🔍 실시간 인기 제품에서 키워드 수집 중..."):
+                with st.spinner("🔍 대분류/중분류별 키워드 수집 중... (시간이 걸릴 수 있습니다)"):
                     try:
                         # auto_keyword_discovery 모듈 import
                         from auto_keyword_discovery import (
-                            discover_trending_keywords,
-                            merge_with_existing_keywords,
-                            save_keywords,
+                            discover_trending_keywords_hierarchical,
                             SEED_QUERIES
                         )
                         
-                        # 키워드 자동 발견
-                        discovered = discover_trending_keywords(
+                        # 계층적 키워드 자동 발견 (대분류 + 중분류)
+                        updated_data = discover_trending_keywords_hierarchical(
                             client_id=client_id,
                             client_secret=client_secret,
                             categories=SEED_QUERIES,
                             max_keywords_per_category=50
                         )
                         
-                        # 기존 데이터와 병합 (선택한 모드로)
-                        merged = merge_with_existing_keywords(discovered, mode=mode_value)
+                        # CategoryManager를 통해 이미 저장되었으므로 통계만 계산
+                        manager = st.session_state["category_manager"]
+                        stats = manager.get_stats()
                         
-                        # 저장
-                        save_keywords(merged, backup=True)
-                        
-                        mode_desc = "최신 인기 키워드로 교체" if mode_value == "replace" else "기존 + 신규 병합"
                         st.success(f"""
-                        ✅ 키워드 자동 업데이트 완료! ({mode_desc})
+                        ✅ 계층적 키워드 자동 수집 완료!
                         
-                        총 {len(merged)}개 카테고리
-                        총 {sum(len(v) for v in merged.values())}개 키워드
+                        - 대분류: {stats['대분류']}개
+                        - 중분류: {stats['중분류']}개
+                        - 자동 키워드: {stats['자동 키워드']}개
+                        - 활성화 키워드: {stats['활성화 키워드']}개
                         """)
                         
                         # 페이지 새로고침
@@ -458,14 +455,17 @@ def main():
         # 키워드 통계
         keywords_info = manager.get_all_keywords(selected_major, selected_sub)
         total_keywords = len(keywords_info["enabled"])
-        st.metric("활성 키워드", f"{total_keywords}개")
         
-        # 중분류를 선택했는데 키워드가 없으면 안내 메시지
-        if selected_sub and total_keywords > 0:
-            # 중분류 자체의 키워드 확인
-            sub_target = manager.data[selected_major]["subcategories"][selected_sub]
-            if not sub_target.get("auto_keywords") and not sub_target.get("user_keywords"):
-                st.caption("💡 대분류 키워드 사용중")
+        # 대분류 전체 선택 시 병합 정보 표시
+        if not selected_sub:
+            subcategories = manager.get_subcategories(selected_major)
+            if subcategories:
+                st.metric("활성 키워드", f"{total_keywords}개", delta="병합")
+                st.caption(f"💡 대분류 + {len(subcategories)}개 중분류")
+            else:
+                st.metric("활성 키워드", f"{total_keywords}개")
+        else:
+            st.metric("활성 키워드", f"{total_keywords}개")
     
     # 키워드 관리 섹션
     st.markdown("---")
