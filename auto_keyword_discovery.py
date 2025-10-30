@@ -110,7 +110,8 @@ def discover_trending_keywords_hierarchical(
     client_id: str,
     client_secret: str,
     categories: Dict,
-    max_keywords_per_category: int = 30
+    max_keywords_per_category: int = 30,
+    manager = None
 ) -> Dict:
     """
     계층적 카테고리별 트렌딩 키워드 자동 발견
@@ -120,13 +121,15 @@ def discover_trending_keywords_hierarchical(
         client_secret: API Client Secret
         categories: 계층적 카테고리 구조
         max_keywords_per_category: 카테고리당 최대 키워드 수
+        manager: CategoryManager 인스턴스 (선택사항, 없으면 새로 생성)
     
     Returns:
         계층적 구조의 키워드
     """
     from category_manager import CategoryManager
     
-    manager = CategoryManager()
+    if manager is None:
+        manager = CategoryManager()
     
     print("="*70)
     print("🔍 실시간 트렌드 키워드 자동 발견 (계층적)")

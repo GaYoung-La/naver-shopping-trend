@@ -206,6 +206,10 @@ def render_rising_keyword_card(rank: int, keyword: str, is_new: bool,
 def main():
     """메인 앱"""
     
+    # CategoryManager 초기화 (앱 시작 시 한 번만)
+    if "category_manager" not in st.session_state:
+        st.session_state["category_manager"] = CategoryManager()
+    
     st.markdown('<div class="main-header">🛍️ 네이버 쇼핑 트렌드 분석</div>', 
                 unsafe_allow_html=True)
     
@@ -307,14 +311,18 @@ def main():
                         )
                         
                         # 계층적 키워드 자동 발견 (대분류 + 중분류)
+                        # session_state의 manager를 전달
+                        manager = st.session_state["category_manager"]
                         updated_data = discover_trending_keywords_hierarchical(
                             client_id=client_id,
                             client_secret=client_secret,
                             categories=SEED_QUERIES,
-                            max_keywords_per_category=50
+                            max_keywords_per_category=50,
+                            manager=manager
                         )
                         
-                        # CategoryManager를 통해 이미 저장되었으므로 통계만 계산
+                        # CategoryManager 새로고침 (파일에서 다시 로드)
+                        st.session_state["category_manager"] = CategoryManager()
                         manager = st.session_state["category_manager"]
                         stats = manager.get_stats()
                         
@@ -402,10 +410,7 @@ def main():
         
         return
     
-    # 카테고리 관리자 초기화
-    if "category_manager" not in st.session_state:
-        st.session_state["category_manager"] = CategoryManager()
-    
+    # 카테고리 관리자 가져오기 (이미 main()에서 초기화됨)
     manager = st.session_state["category_manager"]
     
     # 카테고리 선택
