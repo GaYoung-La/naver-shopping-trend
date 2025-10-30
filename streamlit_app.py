@@ -717,322 +717,322 @@ def main():
         
         st.markdown("---")
         st.markdown(f"## 📊 {category} - 급상승 키워드")
-    
-    # 두 컬럼
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.markdown("#### 🔥 실시간 급상승 순위")
         
-        # 표시할 개수 선택
-        display_count = min(10, len(df_rising))
+        # 두 컬럼
+        col1, col2 = st.columns([1, 1])
         
-        # 상위 N개 표시
-        for idx, row in df_rising.head(display_count).iterrows():
-            rank = idx + 1
-            keyword = row["keyword"]
+        with col1:
+            st.markdown("#### 🔥 실시간 급상승 순위")
             
-            # 카드 렌더링
-            render_rising_keyword_card(
-                rank=rank,
-                keyword=keyword,
-                is_new=False,
-                rank_delta=0,
-                score=row["rising_score"],
-                trend_pct=row["pct_change"],
-                avg_value=row["last_ratio"]
+            # 표시할 개수 선택
+            display_count = min(10, len(df_rising))
+        
+            # 상위 N개 표시
+            for idx, row in df_rising.head(display_count).iterrows():
+                rank = idx + 1
+                keyword = row["keyword"]
+            
+                # 카드 렌더링
+                render_rising_keyword_card(
+                    rank=rank,
+                    keyword=keyword,
+                    is_new=False,
+                    rank_delta=0,
+                    score=row["rising_score"],
+                    trend_pct=row["pct_change"],
+                    avg_value=row["last_ratio"]
+                )
+            
+                # 상세 분석 Expander (카드 안에서 토글)
+                with st.expander(f"🔍 '{keyword}' 상세 분석", expanded=False):
+                    try:
+                        # 키워드 타임라인 가져오기
+                        timeline_df = get_keyword_timeline(
+                            keywords=[keyword],
+                            start_date=params["start_date"],
+                            end_date=params["end_date"],
+                            client_id=client_id,
+                            client_secret=client_secret
+                        )
+                    
+                        if not timeline_df.empty:
+                            # 컴팩트한 시계열 그래프
+                            fig = px.line(
+                                timeline_df.reset_index(),
+                                x="date",
+                                y=keyword,
+                                title=f"검색량 추이",
+                                labels={"date": "날짜", keyword: "검색량"}
+                            )
+                            fig.update_traces(line_color="#03C75A", line_width=2)
+                            fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
+                            st.plotly_chart(fig, use_container_width=True)
+                        
+                            # 통계 (컴팩트)
+                            col_a, col_b, col_c = st.columns(3)
+                            with col_a:
+                                st.metric("평균", f"{timeline_df[keyword].mean():.1f}", 
+                                        delta=None, delta_color="off")
+                            with col_b:
+                                st.metric("최대", f"{timeline_df[keyword].max():.1f}",
+                                        delta=None, delta_color="off")
+                            with col_c:
+                                st.metric("표준편차", f"{timeline_df[keyword].std():.1f}",
+                                        delta=None, delta_color="off")
+                        else:
+                            st.warning("⚠️ 데이터를 불러올 수 없습니다.")
+                
+                    except Exception as e:
+                        st.error(f"❌ 오류: {str(e)}")
+        
+            # 나머지 키워드 (11위 이하)
+            if len(df_rising) > display_count:
+                with st.expander(f"📋 {display_count+1}위 ~ {len(df_rising)}위 보기 ({len(df_rising)-display_count}개)"):
+                    for idx, row in df_rising.iloc[display_count:].iterrows():
+                        rank = idx + 1
+                        keyword = row['keyword']
+                    
+                        # 컴팩트한 표시
+                        col_rank, col_keyword, col_change = st.columns([1, 3, 2])
+                    
+                        with col_rank:
+                            st.markdown(f"**{rank}위**")
+                        with col_keyword:
+                            st.markdown(f"**{keyword}**")
+                        with col_change:
+                            change_color = "🔴" if row['pct_change'] > 0 else "🔵"
+                            st.markdown(f"{change_color} {row['pct_change']:+.1f}%")
+                    
+                        # 간단한 정보 표시
+                        st.caption(f"검색량 평균: {row['last_ratio']:.1f} | 급상승 점수: {row['rising_score']:.1f}")
+                        st.markdown("---")
+    
+        with col2:
+            st.markdown("#### 📈 검색량 변화 상위")
+        
+            # 변화율 차트
+            fig = px.bar(
+                df_rising.head(10),
+                x="pct_change",
+                y="keyword",
+                orientation="h",
+                color="pct_change",
+                color_continuous_scale="Reds",
+                labels={"pct_change": "변화율 (%)", "keyword": "키워드"},
+                title=f"{category} 검색량 변화율 Top 10"
             )
-            
-            # 상세 분석 Expander (카드 안에서 토글)
-            with st.expander(f"🔍 '{keyword}' 상세 분석", expanded=False):
+            fig.update_layout(height=500, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+        
+            # 요약 통계
+            st.markdown("#### 📊 요약 통계")
+        
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                st.metric("평균 증가율", f"{df_rising['pct_change'].mean():.1f}%")
+            with col_b:
+                st.metric("최대 증가율", f"{df_rising['pct_change'].max():.1f}%")
+            with col_c:
+                st.metric("분석 키워드", f"{len(params['keywords'])}개")
+    
+        # 급상승 키워드 비교 차트
+        st.markdown("---")
+        st.markdown("## 📊 급상승 키워드 트렌드 비교")
+    
+        # 비교할 키워드 수 선택
+        col_setting1, col_setting2 = st.columns([3, 1])
+    
+        with col_setting1:
+            compare_count = st.slider(
+                "비교할 키워드 수",
+                min_value=3,
+                max_value=min(10, len(df_rising)),
+                value=min(5, len(df_rising)),
+                help="상위 N개 급상승 키워드의 검색량 추이를 비교합니다"
+            )
+    
+        with col_setting2:
+            if st.button("🔄 차트 생성", type="primary", use_container_width=True):
+                st.session_state["generate_compare_chart"] = True
+    
+        # 차트 생성
+        if st.session_state.get("generate_compare_chart", False):
+            with st.spinner(f"상위 {compare_count}개 키워드 데이터 로딩 중..."):
                 try:
-                    # 키워드 타임라인 가져오기
+                    # 상위 키워드 선택
+                    top_keywords = df_rising.head(compare_count)["keyword"].tolist()
+                
+                    # 타임라인 데이터 조회
                     timeline_df = get_keyword_timeline(
-                        keywords=[keyword],
+                        keywords=top_keywords,
                         start_date=params["start_date"],
                         end_date=params["end_date"],
                         client_id=client_id,
                         client_secret=client_secret
                     )
-                    
+                
                     if not timeline_df.empty:
-                        # 컴팩트한 시계열 그래프
-                        fig = px.line(
-                            timeline_df.reset_index(),
-                            x="date",
-                            y=keyword,
-                            title=f"검색량 추이",
-                            labels={"date": "날짜", keyword: "검색량"}
-                        )
-                        fig.update_traces(line_color="#03C75A", line_width=2)
-                        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, use_container_width=True)
+                        # 탭으로 여러 차트 제공
+                        tab1, tab2, tab3 = st.tabs(["📈 시계열 비교", "📊 히트맵", "📉 정규화 비교"])
+                    
+                        with tab1:
+                            st.markdown("### 📈 시계열 트렌드 비교")
+                            st.caption("각 키워드의 검색량 추이를 직접 비교합니다")
                         
-                        # 통계 (컴팩트)
-                        col_a, col_b, col_c = st.columns(3)
-                        with col_a:
-                            st.metric("평균", f"{timeline_df[keyword].mean():.1f}", 
-                                    delta=None, delta_color="off")
-                        with col_b:
-                            st.metric("최대", f"{timeline_df[keyword].max():.1f}",
-                                    delta=None, delta_color="off")
-                        with col_c:
-                            st.metric("표준편차", f"{timeline_df[keyword].std():.1f}",
-                                    delta=None, delta_color="off")
+                            # 멀티 라인 차트
+                            fig_line = go.Figure()
+                        
+                            colors = px.colors.qualitative.Set2
+                            for idx, keyword in enumerate(top_keywords):
+                                fig_line.add_trace(go.Scatter(
+                                    x=timeline_df.index,
+                                    y=timeline_df[keyword],
+                                    name=keyword,
+                                    mode='lines+markers',
+                                    line=dict(width=2, color=colors[idx % len(colors)]),
+                                    marker=dict(size=4)
+                                ))
+                        
+                            fig_line.update_layout(
+                                title=f"급상승 Top {compare_count} 키워드 검색량 비교",
+                                xaxis_title="날짜",
+                                yaxis_title="검색량 지수",
+                                hovermode='x unified',
+                                height=500,
+                                legend=dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1
+                                )
+                            )
+                        
+                            st.plotly_chart(fig_line, use_container_width=True)
+                    
+                        with tab2:
+                            st.markdown("### 📊 검색량 히트맵")
+                            st.caption("키워드별 검색량의 상대적 강도를 색상으로 표현합니다")
+                        
+                            # 히트맵 데이터 준비 (날짜를 짧게)
+                            heatmap_data = timeline_df.copy()
+                            # 인덱스를 datetime으로 변환 후 포맷
+                            heatmap_data.index = pd.to_datetime(heatmap_data.index).strftime('%m/%d')
+                        
+                            fig_heatmap = px.imshow(
+                                heatmap_data.T,
+                                labels=dict(x="날짜", y="키워드", color="검색량"),
+                                x=heatmap_data.index,
+                                y=top_keywords,
+                                color_continuous_scale="YlOrRd",
+                                aspect="auto"
+                            )
+                        
+                            fig_heatmap.update_layout(
+                                title=f"급상승 키워드 검색량 히트맵",
+                                height=400
+                            )
+                        
+                            st.plotly_chart(fig_heatmap, use_container_width=True)
+                    
+                        with tab3:
+                            st.markdown("### 📉 정규화 트렌드 비교")
+                            st.caption("각 키워드의 검색량을 0-100 범위로 정규화하여 트렌드 패턴을 비교합니다")
+                        
+                            # 정규화 (각 키워드를 0-100 스케일로)
+                            normalized_df = timeline_df.copy()
+                            for col in normalized_df.columns:
+                                min_val = normalized_df[col].min()
+                                max_val = normalized_df[col].max()
+                                if max_val > min_val:
+                                    normalized_df[col] = ((normalized_df[col] - min_val) / (max_val - min_val)) * 100
+                                else:
+                                    normalized_df[col] = 50
+                        
+                            fig_normalized = go.Figure()
+                        
+                            for idx, keyword in enumerate(top_keywords):
+                                fig_normalized.add_trace(go.Scatter(
+                                    x=normalized_df.index,
+                                    y=normalized_df[keyword],
+                                    name=keyword,
+                                    mode='lines',
+                                    line=dict(width=2, color=colors[idx % len(colors)])
+                                ))
+                        
+                            fig_normalized.update_layout(
+                                title=f"정규화된 트렌드 패턴 비교",
+                                xaxis_title="날짜",
+                                yaxis_title="정규화 점수 (0-100)",
+                                hovermode='x unified',
+                                height=500,
+                                legend=dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1
+                                )
+                            )
+                        
+                            st.plotly_chart(fig_normalized, use_container_width=True)
+                    
+                        # 인사이트
+                        st.markdown("### 💡 인사이트")
+                    
+                        col_insight1, col_insight2, col_insight3 = st.columns(3)
+                    
+                        with col_insight1:
+                            st.markdown("#### 🏆 최고 검색량")
+                            max_values = timeline_df.max()
+                            max_keyword = max_values.idxmax()
+                            max_value = max_values.max()
+                            st.info(f"**{max_keyword}**\n\n{max_value:.1f}")
+                    
+                        with col_insight2:
+                            st.markdown("#### 📈 가장 안정적")
+                            std_values = timeline_df.std()
+                            stable_keyword = std_values.idxmin()
+                            stable_std = std_values.min()
+                            st.info(f"**{stable_keyword}**\n\n표준편차 {stable_std:.1f}")
+                    
+                        with col_insight3:
+                            st.markdown("#### 📊 평균 검색량")
+                            avg_values = timeline_df.mean()
+                            avg_keyword = avg_values.idxmax()
+                            avg_value = avg_values.max()
+                            st.info(f"**{avg_keyword}**\n\n{avg_value:.1f}")
+                    
+                        # 데이터 다운로드
+                        with st.expander("📋 비교 데이터 다운로드"):
+                            csv_compare = timeline_df.reset_index().to_csv(index=False, encoding="utf-8-sig")
+                            st.download_button(
+                                label="📥 비교 데이터 CSV 다운로드",
+                                data=csv_compare,
+                                file_name=f"compare_keywords_{category}_{datetime.now().strftime('%Y%m%d')}.csv",
+                                mime="text/csv"
+                            )
+                
                     else:
-                        st.warning("⚠️ 데이터를 불러올 수 없습니다.")
-                
-                except Exception as e:
-                    st.error(f"❌ 오류: {str(e)}")
-        
-        # 나머지 키워드 (11위 이하)
-        if len(df_rising) > display_count:
-            with st.expander(f"📋 {display_count+1}위 ~ {len(df_rising)}위 보기 ({len(df_rising)-display_count}개)"):
-                for idx, row in df_rising.iloc[display_count:].iterrows():
-                    rank = idx + 1
-                    keyword = row['keyword']
-                    
-                    # 컴팩트한 표시
-                    col_rank, col_keyword, col_change = st.columns([1, 3, 2])
-                    
-                    with col_rank:
-                        st.markdown(f"**{rank}위**")
-                    with col_keyword:
-                        st.markdown(f"**{keyword}**")
-                    with col_change:
-                        change_color = "🔴" if row['pct_change'] > 0 else "🔵"
-                        st.markdown(f"{change_color} {row['pct_change']:+.1f}%")
-                    
-                    # 간단한 정보 표시
-                    st.caption(f"검색량 평균: {row['last_ratio']:.1f} | 급상승 점수: {row['rising_score']:.1f}")
-                    st.markdown("---")
-    
-    with col2:
-        st.markdown("#### 📈 검색량 변화 상위")
-        
-        # 변화율 차트
-        fig = px.bar(
-            df_rising.head(10),
-            x="pct_change",
-            y="keyword",
-            orientation="h",
-            color="pct_change",
-            color_continuous_scale="Reds",
-            labels={"pct_change": "변화율 (%)", "keyword": "키워드"},
-            title=f"{category} 검색량 변화율 Top 10"
-        )
-        fig.update_layout(height=500, showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # 요약 통계
-        st.markdown("#### 📊 요약 통계")
-        
-        col_a, col_b, col_c = st.columns(3)
-        with col_a:
-            st.metric("평균 증가율", f"{df_rising['pct_change'].mean():.1f}%")
-        with col_b:
-            st.metric("최대 증가율", f"{df_rising['pct_change'].max():.1f}%")
-        with col_c:
-            st.metric("분석 키워드", f"{len(params['keywords'])}개")
-    
-    # 급상승 키워드 비교 차트
-    st.markdown("---")
-    st.markdown("## 📊 급상승 키워드 트렌드 비교")
-    
-    # 비교할 키워드 수 선택
-    col_setting1, col_setting2 = st.columns([3, 1])
-    
-    with col_setting1:
-        compare_count = st.slider(
-            "비교할 키워드 수",
-            min_value=3,
-            max_value=min(10, len(df_rising)),
-            value=min(5, len(df_rising)),
-            help="상위 N개 급상승 키워드의 검색량 추이를 비교합니다"
-        )
-    
-    with col_setting2:
-        if st.button("🔄 차트 생성", type="primary", use_container_width=True):
-            st.session_state["generate_compare_chart"] = True
-    
-    # 차트 생성
-    if st.session_state.get("generate_compare_chart", False):
-        with st.spinner(f"상위 {compare_count}개 키워드 데이터 로딩 중..."):
-            try:
-                # 상위 키워드 선택
-                top_keywords = df_rising.head(compare_count)["keyword"].tolist()
-                
-                # 타임라인 데이터 조회
-                timeline_df = get_keyword_timeline(
-                    keywords=top_keywords,
-                    start_date=params["start_date"],
-                    end_date=params["end_date"],
-                    client_id=client_id,
-                    client_secret=client_secret
-                )
-                
-                if not timeline_df.empty:
-                    # 탭으로 여러 차트 제공
-                    tab1, tab2, tab3 = st.tabs(["📈 시계열 비교", "📊 히트맵", "📉 정규화 비교"])
-                    
-                    with tab1:
-                        st.markdown("### 📈 시계열 트렌드 비교")
-                        st.caption("각 키워드의 검색량 추이를 직접 비교합니다")
-                        
-                        # 멀티 라인 차트
-                        fig_line = go.Figure()
-                        
-                        colors = px.colors.qualitative.Set2
-                        for idx, keyword in enumerate(top_keywords):
-                            fig_line.add_trace(go.Scatter(
-                                x=timeline_df.index,
-                                y=timeline_df[keyword],
-                                name=keyword,
-                                mode='lines+markers',
-                                line=dict(width=2, color=colors[idx % len(colors)]),
-                                marker=dict(size=4)
-                            ))
-                        
-                        fig_line.update_layout(
-                            title=f"급상승 Top {compare_count} 키워드 검색량 비교",
-                            xaxis_title="날짜",
-                            yaxis_title="검색량 지수",
-                            hovermode='x unified',
-                            height=500,
-                            legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.02,
-                                xanchor="right",
-                                x=1
-                            )
-                        )
-                        
-                        st.plotly_chart(fig_line, use_container_width=True)
-                    
-                    with tab2:
-                        st.markdown("### 📊 검색량 히트맵")
-                        st.caption("키워드별 검색량의 상대적 강도를 색상으로 표현합니다")
-                        
-                        # 히트맵 데이터 준비 (날짜를 짧게)
-                        heatmap_data = timeline_df.copy()
-                        # 인덱스를 datetime으로 변환 후 포맷
-                        heatmap_data.index = pd.to_datetime(heatmap_data.index).strftime('%m/%d')
-                        
-                        fig_heatmap = px.imshow(
-                            heatmap_data.T,
-                            labels=dict(x="날짜", y="키워드", color="검색량"),
-                            x=heatmap_data.index,
-                            y=top_keywords,
-                            color_continuous_scale="YlOrRd",
-                            aspect="auto"
-                        )
-                        
-                        fig_heatmap.update_layout(
-                            title=f"급상승 키워드 검색량 히트맵",
-                            height=400
-                        )
-                        
-                        st.plotly_chart(fig_heatmap, use_container_width=True)
-                    
-                    with tab3:
-                        st.markdown("### 📉 정규화 트렌드 비교")
-                        st.caption("각 키워드의 검색량을 0-100 범위로 정규화하여 트렌드 패턴을 비교합니다")
-                        
-                        # 정규화 (각 키워드를 0-100 스케일로)
-                        normalized_df = timeline_df.copy()
-                        for col in normalized_df.columns:
-                            min_val = normalized_df[col].min()
-                            max_val = normalized_df[col].max()
-                            if max_val > min_val:
-                                normalized_df[col] = ((normalized_df[col] - min_val) / (max_val - min_val)) * 100
-                            else:
-                                normalized_df[col] = 50
-                        
-                        fig_normalized = go.Figure()
-                        
-                        for idx, keyword in enumerate(top_keywords):
-                            fig_normalized.add_trace(go.Scatter(
-                                x=normalized_df.index,
-                                y=normalized_df[keyword],
-                                name=keyword,
-                                mode='lines',
-                                line=dict(width=2, color=colors[idx % len(colors)])
-                            ))
-                        
-                        fig_normalized.update_layout(
-                            title=f"정규화된 트렌드 패턴 비교",
-                            xaxis_title="날짜",
-                            yaxis_title="정규화 점수 (0-100)",
-                            hovermode='x unified',
-                            height=500,
-                            legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.02,
-                                xanchor="right",
-                                x=1
-                            )
-                        )
-                        
-                        st.plotly_chart(fig_normalized, use_container_width=True)
-                    
-                    # 인사이트
-                    st.markdown("### 💡 인사이트")
-                    
-                    col_insight1, col_insight2, col_insight3 = st.columns(3)
-                    
-                    with col_insight1:
-                        st.markdown("#### 🏆 최고 검색량")
-                        max_values = timeline_df.max()
-                        max_keyword = max_values.idxmax()
-                        max_value = max_values.max()
-                        st.info(f"**{max_keyword}**\n\n{max_value:.1f}")
-                    
-                    with col_insight2:
-                        st.markdown("#### 📈 가장 안정적")
-                        std_values = timeline_df.std()
-                        stable_keyword = std_values.idxmin()
-                        stable_std = std_values.min()
-                        st.info(f"**{stable_keyword}**\n\n표준편차 {stable_std:.1f}")
-                    
-                    with col_insight3:
-                        st.markdown("#### 📊 평균 검색량")
-                        avg_values = timeline_df.mean()
-                        avg_keyword = avg_values.idxmax()
-                        avg_value = avg_values.max()
-                        st.info(f"**{avg_keyword}**\n\n{avg_value:.1f}")
-                    
-                    # 데이터 다운로드
-                    with st.expander("📋 비교 데이터 다운로드"):
-                        csv_compare = timeline_df.reset_index().to_csv(index=False, encoding="utf-8-sig")
-                        st.download_button(
-                            label="📥 비교 데이터 CSV 다운로드",
-                            data=csv_compare,
-                            file_name=f"compare_keywords_{category}_{datetime.now().strftime('%Y%m%d')}.csv",
-                            mime="text/csv"
-                        )
-                
-                else:
-                    st.warning("⚠️ 비교 데이터를 불러올 수 없습니다.")
+                        st.warning("⚠️ 비교 데이터를 불러올 수 없습니다.")
             
-            except Exception as e:
-                st.error(f"❌ 비교 차트 생성 실패: {str(e)}")
-                with st.expander("🔧 상세 오류"):
-                    import traceback
-                    st.code(traceback.format_exc())
+                except Exception as e:
+                    st.error(f"❌ 비교 차트 생성 실패: {str(e)}")
+                    with st.expander("🔧 상세 오류"):
+                        import traceback
+                        st.code(traceback.format_exc())
     
-    # 데이터 다운로드
-    st.markdown("---")
-    st.markdown("### 💾 데이터 다운로드")
+        # 데이터 다운로드
+        st.markdown("---")
+        st.markdown("### 💾 데이터 다운로드")
     
-    csv = df_rising.to_csv(index=False, encoding="utf-8-sig")
-    st.download_button(
-        label="📥 CSV 다운로드",
-        data=csv,
-        file_name=f"rising_keywords_{category}_{datetime.now().strftime('%Y%m%d')}.csv",
-        mime="text/csv"
-    )
+        csv = df_rising.to_csv(index=False, encoding="utf-8-sig")
+        st.download_button(
+            label="📥 CSV 다운로드",
+            data=csv,
+            file_name=f"rising_keywords_{category}_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
 
 
 if __name__ == "__main__":
