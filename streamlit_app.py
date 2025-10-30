@@ -460,25 +460,26 @@ def main():
     with col3:
         # 키워드 통계
         keywords_info = manager.get_all_keywords(selected_major, selected_sub)
-        total_keywords = len(keywords_info["enabled"])
+        enabled_count = len(keywords_info["enabled"])
+        total_count = len(keywords_info["auto"]) + len(keywords_info["user"])
         
         # 대분류 전체 선택 시 병합 정보 표시
         if not selected_sub:
             subcategories = manager.get_subcategories(selected_major)
             if subcategories:
-                st.metric("활성 키워드", f"{total_keywords}개", delta="병합")
+                st.metric("활성 키워드", f"{enabled_count}개", delta="병합")
                 st.caption(f"💡 대분류 + {len(subcategories)}개 중분류")
             else:
-                st.metric("활성 키워드", f"{total_keywords}개")
+                st.metric("활성 키워드", f"{enabled_count}개")
         else:
-            st.metric("활성 키워드", f"{total_keywords}개")
+            st.metric("활성 키워드", f"{enabled_count}개")
     
     # 키워드 관리 섹션
     st.markdown("---")
     st.markdown("### 🔧 키워드 관리")
     
-    # 키워드가 없으면 안내 메시지
-    if total_keywords == 0:
+    # 실제 키워드가 없으면 안내 메시지 (활성화 여부가 아닌 보유 여부 체크)
+    if total_count == 0:
         st.warning("""
         ⚠️ **키워드가 없습니다!**
         
@@ -668,13 +669,23 @@ def main():
         
     st.divider()
     
+    # 활성화된 키워드 없을 때 안내
+    if enabled_count == 0:
+        st.warning("⚠️ **활성화된 키워드가 없습니다!**")
+        st.info("""
+        💡 **트렌드 분석을 시작하려면:**
+        - 📋 **전체 키워드** 탭에서 키워드를 선택하거나
+        - **✅ 전체 선택** 버튼을 클릭하세요
+        """)
+    
     # 분석 실행
     col_a, col_b, col_c = st.columns([1, 2, 1])
     with col_b:
         analyze_btn = st.button(
             "🚀 트렌드 분석 시작",
             type="primary",
-            use_container_width=True
+            use_container_width=True,
+            disabled=(enabled_count == 0)  # 활성화된 키워드가 없으면 버튼 비활성화
         )
     
     if analyze_btn:
