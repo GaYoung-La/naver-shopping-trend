@@ -18,8 +18,7 @@ from datalab_api import find_rising_keywords, get_keyword_timeline
 from naver_shopping_categories import (
     NAVER_SHOPPING_CATEGORIES,
     get_category_keywords,
-    collect_all_categories,
-    load_categories
+    collect_all_categories
 )
 from category_manager import CategoryManager
 
@@ -276,28 +275,37 @@ def main():
         # 카테고리 관리
         st.header("📂 카테고리 관리")
         
-        # 저장된 카테고리 로드
-        categories_file = Path("naver_categories.json")
+        # CategoryManager 통계 표시
+        manager = st.session_state["category_manager"]
+        stats = manager.get_stats()
         
-        if categories_file.exists():
-            st.success(f"✅ 카테고리 데이터 로드 완료")
+        # 키워드가 있는지 확인
+        has_keywords = stats['활성화 키워드'] > 0
+        
+        if has_keywords:
+            st.success(f"✅ 키워드 수집 완료")
             
-            categories = load_categories()
-            st.metric("총 카테고리", f"{len(categories)}개")
-            st.metric("총 키워드", f"{sum(len(v) for v in categories.values())}개")
-            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("대분류", f"{stats['대분류']}개")
+                st.metric("중분류", f"{stats['중분류']}개")
+            with col2:
+                st.metric("자동 키워드", f"{stats['자동 키워드']}개")
+                st.metric("활성화", f"{stats['활성화 키워드']}개")
+        else:
+            st.warning("⚠️ 키워드 없음")
             st.info("""
-            💡 **실제 검색량 데이터로 분석**
+            💡 **키워드를 수집하세요**
             
-            현재 카테고리의 키워드로
-            DataLab API를 통해 실시간
-            검색량 트렌드를 분석합니다.
+            아래 버튼을 클릭하여
+            대분류와 중분류별로
+            키워드를 자동 수집합니다.
             """)
-            
-            # 자동 키워드 업데이트 버튼
-            st.markdown("---")
-            
-            if st.button("🔄 실시간 인기 제품으로 키워드 자동 업데이트", 
+        
+        # 자동 키워드 업데이트 버튼
+        st.markdown("---")
+        
+        if st.button("🔄 실시간 인기 제품으로 키워드 자동 업데이트", 
                         type="secondary", 
                         use_container_width=True,
                         help="대분류와 중분류별로 키워드를 자동으로 수집합니다"):
@@ -345,16 +353,6 @@ def main():
                         with st.expander("🔧 상세 오류"):
                             import traceback
                             st.code(traceback.format_exc())
-        
-        else:
-            st.warning("⚠️ 카테고리 데이터 없음")
-            
-            # 자동 생성
-            if st.button("📥 기본 카테고리 생성", type="primary", use_container_width=True):
-                import shutil
-                shutil.copy("naver_categories_demo.json", "naver_categories.json")
-                st.success("✅ 기본 카테고리 생성 완료!")
-                st.rerun()
         
         st.divider()
         
